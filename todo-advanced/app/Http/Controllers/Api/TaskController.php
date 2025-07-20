@@ -11,7 +11,8 @@ class TaskController extends Controller
     // GET /api/tasks
     public function index()
     {
-        return response()->json(Task::all());
+        // Carichiamo anche la relazione priority
+        return response()->json(Task::with('priority')->get());
     }
 
     // POST /api/tasks
@@ -20,11 +21,14 @@ class TaskController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'note' => 'required|string|max:255',
-            'date' => 'required|integer',
-            'priority_id' => 'nullable|exists:priorities,id', // Assuming priority_id is optional and exists in priorities table
+            'date' => 'nullable|integer',
+            'priority_id' => 'nullable|exists:priorities,id',
         ]);
 
         $task = Task::create($validated);
+
+        // Carichiamo la relazione prima di restituire
+        $task->load('priority');
 
         return response()->json($task, 201);
     }
@@ -32,7 +36,7 @@ class TaskController extends Controller
     // GET /api/tasks/{id}
     public function show($id)
     {
-        $task = Task::findOrFail($id);
+        $task = Task::with('priority')->findOrFail($id);
         return response()->json($task);
     }
 
@@ -44,11 +48,14 @@ class TaskController extends Controller
         $validated = $request->validate([
             'title' => 'sometimes|string|max:255',
             'note' => 'sometimes|string|max:255',
-            'date' => 'sometimes|integer',
+            'date' => 'nullable|integer',
             'priority_id' => 'nullable|exists:priorities,id',
         ]);
 
         $task->update($validated);
+
+        // Ricarichiamo la relazione aggiornata
+        $task->load('priority');
 
         return response()->json($task);
     }
